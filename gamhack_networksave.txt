@@ -1,0 +1,140 @@
+Here's the modified code with a save button that stores the connections in a state variable:
+
+jsx
+Copy
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+
+const predefinedImages = [
+  { id: 1, name: 'Database', src: './databasee.png' },
+  { id: 2, name: 'Firewall', src: './firewall.png' },
+  { id: 3, name: 'WWW Endpoint', src: './node.png' },
+  { id: 4, name: 'Server', src: './server.png' }
+];
+
+const Grid = () => {
+  // ... existing state declarations ...
+  const [savedConnections, setSavedConnections] = useState([]); // New state for saved connections
+
+  // Add this function to handle saving connections
+  const handleSaveConnections = () => {
+    setSavedConnections(connections);
+  };
+
+  return (
+    <div style={{ padding: '100px' }}>
+      {/* ... existing SVG and palette code ... */}
+      
+      <div style={{ marginTop: '20px', top: '500px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <h3>Network State:</h3>
+          <button 
+            onClick={handleSaveConnections}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Save Connections
+          </button>
+        </div>
+        
+        <pre>
+          {JSON.stringify({
+            currentConnections: connections.map(conn => ({
+              from: conn.startImage,
+              to: conn.endImage,
+              path: `${conn.start.x},${conn.start.y} → ${conn.end.x},${conn.end.y}`
+            })),
+            savedConnections: savedConnections.map(conn => ({
+              from: conn.startImage,
+              to: conn.endImage,
+              path: `${conn.start.x},${conn.start.y} → ${conn.end.x},${conn.end.y}`
+            })),
+            devices: placedImages.map(img => ({
+              name: img.name,
+              type: img.name,
+              position: `${img.x},${img.y}`
+            }))
+          }, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+};
+
+export default Grid;
+Key additions:
+
+Added a new state variable savedConnections to store the saved connections
+
+Created a handleSaveConnections function that saves current connections to state
+
+Added a styled save button in the UI
+
+Updated the JSON display to show both current and saved connections
+
+When you click the "Save Connections" button:
+
+The current connection data will be stored in the savedConnections state variable
+
+The saved data persists even if you make new connections
+
+The saved connections are displayed in the JSON output under "savedConnections"
+
+You can use the saved connections data for:
+
+jsx
+Copy
+// Access the saved connections anywhere in your component
+console.log(savedConnections); 
+
+// Example usage for exporting/downloading:
+const exportConnections = () => {
+  const data = JSON.stringify(savedConnections, null, 2);
+  // Implement download logic here
+};
+The saved data structure looks like this:
+
+json
+Copy
+{
+  "currentConnections": [
+    {
+      "from": "Database",
+      "to": "Server",
+      "path": "2,3 → 5,4"
+    }
+  ],
+  "savedConnections": [
+    {
+      "from": "Database",
+      "to": "Server",
+      "path": "2,3 → 5,4"
+    }
+  ],
+  "devices": [
+    {
+      "name": "Database",
+      "type": "Database",
+      "position": "2,3"
+    }
+  ]
+}
+To persist across page refreshes, you could add localStorage:
+
+jsx
+Copy
+// Add to save handler
+const handleSaveConnections = () => {
+  setSavedConnections(connections);
+  localStorage.setItem('savedConnections', JSON.stringify(connections));
+};
+
+// Initialize state with localStorage
+const [savedConnections, setSavedConnections] = useState(
+  JSON.parse(localStorage.getItem('savedConnections')) || []
+);

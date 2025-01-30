@@ -40,8 +40,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
   const [notificationSubmitted, setNotificationSubmitted] = useState(false);
   const [userAnswers, setUserAnswers] = useState({});
   const [validationResults, setValidationResults] = useState({});
-
-  const question = ['a','b','c']
+  const [showCoinAnimation, setShowCoinAnimation] = useState(false);
 
   // Generate 51x51 grid of nodes (50x50 squares)
   const nodes = useMemo(() =>
@@ -112,7 +111,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
     for (const node of nodes) {
       const nodeX = node.x * 50;
       const nodeY = node.y * 50;
-      const distance = Math.sqrt((x - nodeX) * 2 + (y - nodeY) * 2);
+      const distance = Math.sqrt((x - nodeX) ** 2 + (y - nodeY) ** 2);
       if (distance < 10) endNode = node;
     }
 
@@ -208,11 +207,38 @@ const Grid = ({ initialSavedComponents = [] }) => {
 
   const handleNotificationSubmit = () => {
     const results = {};
+    let ans_count = 0 ;
     questions.forEach(q => {
       results[q.id] = userAnswers[q.id] === q.correctAnswer;
+      if(results[q.id]){
+        ans_count+=10 ;
+      }
     });
+    console.log(ans_count)
     setValidationResults(results);
     setNotificationSubmitted(true);
+
+    // Show coin animation
+    if(ans_count>=10){
+      setShowCoinAnimation(true);
+      setTimeout(() => {
+        setShowCoinAnimation(false);
+      }, 2000); // Hide after 2 seconds
+      
+    }
+
+    // Add an endpoint component to the grid
+    const newEndpoint = {
+      component_id: uuidv4(),
+      component_name: 'New Endpoint',
+      level: "1",
+      row: Math.floor(Math.random() * 51),
+      column: Math.floor(Math.random() * 51),
+      points: 0,
+      connected_to: [],
+      src: './node.png'
+    };
+    setComponents(prev => [...prev, newEndpoint]);
   };
 
   return (
@@ -246,6 +272,23 @@ const Grid = ({ initialSavedComponents = [] }) => {
           </div>
         </div>
       </div>
+
+      {/* Coin Animation */}
+      {showCoinAnimation && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1002
+        }}>
+          <img
+            src="https://i.gifer.com/Fw3P.gif" // Replace with your coin GIF
+            alt="Coin Animation"
+            style={{ width: '100px', height: '100px' }}
+          />
+        </div>
+      )}
 
       {/* Notification Popup */}
       {showNotificationPopup && (
@@ -284,7 +327,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
                   <label>
                     <input
                       type="radio"
-                      name={question-`${q.id}`}
+                      name={`question-${q.id}`}
                       value={option}
                       checked={userAnswers[q.id] === option}
                       onChange={() => handleAnswerChange(q.id, option)}
@@ -328,7 +371,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
       )}
 
       {/* Grid and Component Palette */}
-      <div style={{ padding: '100px', marginTop: '60px' }}>
+      <div style={{ padding: '100px', marginTop: '60px', display:'grid', justifyContent:'center' }}>
         <svg
           ref={containerRef}
           width="1500"
@@ -449,7 +492,6 @@ const Grid = ({ initialSavedComponents = [] }) => {
         {/* Network State Display */}
         <div style={{ marginTop: '20px', top: '500px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <h3>Network State:</h3>
             <button
               onClick={handleSaveComponents}
               style={{
@@ -465,7 +507,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
             </button>
           </div>
 
-          <pre>
+          <div style={{display:'none'}}>
             {JSON.stringify({
               currentComponents: components.map(comp => ({
                 component_id: comp.component_id,
@@ -478,7 +520,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
               })),
               savedComponents: savedComponents
             }, null, 2)}
-          </pre>
+          </div>
         </div>
       </div>
     </div>

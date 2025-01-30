@@ -99,55 +99,85 @@ const Grid = ({ initialSavedComponents = [] }) => {
     setCurrentPosition({ x, y });
   }, [startNode]);
 
-  const handleMouseUp = useCallback((event) => {
-    if (!startNode || !containerRef.current) return;
+ 
+// Modified handleMouseUp function with distance restrictions
+const handleMouseUp = useCallback((event) => {
+  if (!startNode || !containerRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+  const rect = containerRef.current.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
 
-    // Find end node
-    let endNode = null;
-    for (const node of nodes) {
-      const nodeX = node.x * 50;
-      const nodeY = node.y * 50;
-      const distance = Math.sqrt((x - nodeX) ** 2 + (y - nodeY) ** 2);
-      if (distance < 10) endNode = node;
-    }
+  // Find end node
+  let endNode = null;
+  for (const node of nodes) {
+    const nodeX = node.x * 50;
+    const nodeY = node.y * 50;
+    const distance = Math.sqrt((x - nodeX) ** 2 + (y - nodeY) ** 2);
+    if (distance < 10) endNode = node;
+  }
 
-    if (endNode) {
-      const startComponent = components.find(c =>
-        c.row === startNode.x && c.column === startNode.y
-      );
-      const endComponent = components.find(c =>
-        c.row === endNode.x && c.column === endNode.y
-      );
+  if (endNode) {
+    const startComponent = components.find(c => 
+      c.row === startNode.x && c.column === startNode.y
+    );
+    const endComponent = components.find(c => 
+      c.row === endNode.x && c.column === endNode.y
+    );
 
-      if (startComponent && endComponent) {
-        setComponents(prev => prev.map(comp => {
-          if (comp.component_id === startComponent.component_id) {
-            return {
-              ...comp,
-              connected_to: [...new Set([...comp.connected_to, endComponent.component_id])]
-            };
-          }
-          if (comp.component_id === endComponent.component_id) {
-            return {
-              ...comp,
-              connected_to: [...new Set([...comp.connected_to, startComponent.component_id])]
-            };
-          }
-          return comp;
-        }));
+    if (startComponent && endComponent) {
+      // Check Coin Storage restrictions first
+      const isStartCoinStorage = startComponent.component_name === 'Coin Storage';
+      const isEndCoinStorage = endComponent.component_name === 'Coin Storage';
+      const allowedForCoinStorage = ['Coin Storage', 'Database'];
+      
+      if ((isStartCoinStorage && !allowedForCoinStorage.includes(endComponent.component_name)) ||
+          (isEndCoinStorage && !allowedForCoinStorage.includes(startComponent.component_name))) {
+        console.log('Invalid connection between', startComponent.component_name, 'and', endComponent.component_name);
+        return;
       }
-    }
 
-    // Cleanup
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-    setStartNode(null);
-    setCurrentPosition(null);
-  }, [startNode, nodes, handleMouseMove, components]);
+      // Calculate Manhattan distance between components
+      const distance = Math.abs(startComponent.row - endComponent.row) + 
+                      Math.abs(startComponent.column - endComponent.column);
+
+      // Check distance restriction if components are more than 5 nodes apart
+      if (distance > 6) {
+        const isStartRouter = startComponent.component_name === 'Router';
+        const isEndRouter = endComponent.component_name === 'Router';
+        
+        // Block connection if neither component is a Router
+        if (!isStartRouter && !isEndRouter) {
+          console.log('Cannot connect components more than 5 nodes apart without a Router');
+          return;
+        }
+      }
+
+      // Proceed with valid connection
+      setComponents(prev => prev.map(comp => {
+        if (comp.component_id === startComponent.component_id) {
+          return {
+            ...comp,
+            connected_to: [...new Set([...comp.connected_to, endComponent.component_id])]
+          };
+        }
+        if (comp.component_id === endComponent.component_id) {
+          return {
+            ...comp,
+            connected_to: [...new Set([...comp.connected_to, startComponent.component_id])]
+          };
+        }
+        return comp;
+      }));
+    }
+  }
+
+  // Cleanup
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', handleMouseUp);
+  setStartNode(null);
+  setCurrentPosition(null);
+}, [startNode, nodes, handleMouseMove, components]);
 
   const handleNodeMouseDown = useCallback((node) => {
     setStartNode(node);

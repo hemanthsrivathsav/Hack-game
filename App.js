@@ -3,25 +3,28 @@ import Grid from './Grid.js';
 
 // Usage example
 const App = () => {
-  const savedConnections = [
+  const savedComponents = [
     {
-      "from": "WWW Endpoint",
-      "to": "Firewall",
-      "path": "13,8 → 14,10"
+      component_id: 1,
+      component_name: "WWW Endpoint",
+      level: "1",
+      row: 13,
+      column: 8,
+      connected_to: [2],
+      src: "./node.png"
     },
     {
-      "from": "Firewall",
-      "to": "Server",
-      "path": "14,10 → 17,10"
-    },
-    {
-      "from": "Server",
-      "to": "Database",
-      "path": "17,10 → 19,11"
+      component_id: 2,
+      component_name: "Firewall",
+      level: "1",
+      row: 14,
+      column: 10,
+      connected_to: [1],
+      src: "./firewall.png"
     }
   ];
 
-  return <Grid initialSavedConnections={savedConnections} />;
+  return <Grid initialSavedComponents={savedComponents} />;
 };
 
 export default App;

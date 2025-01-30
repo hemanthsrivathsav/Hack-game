@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 const predefinedComponents = [
-  { id: 1, name: 'Database', src: './databasee.png' },
-  { id: 2, name: 'Firewall', src: './firewall.png' },
-  { id: 3, name: 'WWW Endpoint', src: './node.png' },
-  { id: 4, name: 'Server', src: './server.png' }
+  { id: 1, name: 'Database', src: './databasee.png',points:0},
+  { id: 2, name: 'Firewall', src: './firewall.png',points:10 },
+  { id: 3, name: 'WWW Endpoint', src: './node.png',points:0},
+  { id: 4, name: 'Server', src: './server.png',points:0}
 ];
 
 const Grid = ({ initialSavedComponents = [] }) => {
@@ -14,7 +15,6 @@ const Grid = ({ initialSavedComponents = [] }) => {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [draggedComponent, setDraggedComponent] = useState(null);
   const [savedComponents, setSavedComponents] = useState([]);
-  const [componentIdCounter, setComponentIdCounter] = useState(1);
 
   // Generate 51x51 grid of nodes (50x50 squares)
   const nodes = useMemo(() => 
@@ -26,15 +26,19 @@ const Grid = ({ initialSavedComponents = [] }) => {
   // Load initial configuration
   useEffect(() => {
     if (initialSavedComponents.length > 0) {
-      const maxId = Math.max(...initialSavedComponents.map(c => c.component_id));
-      setComponents(initialSavedComponents);
-      setComponentIdCounter(maxId + 1);
+      setComponents(initialSavedComponents.map(comp => ({
+        ...comp,
+        component_id: comp.component_id || uuidv4()
+      })));
     }
   }, [initialSavedComponents]);
 
   // Component placement handlers
   const handleComponentDragStart = (e, component) => {
-    setDraggedComponent(component);
+    setDraggedComponent({
+      ...component,
+      temp_id: uuidv4()
+    });
     e.dataTransfer.setData('text/plain', '');
   };
 
@@ -42,17 +46,20 @@ const Grid = ({ initialSavedComponents = [] }) => {
     e.preventDefault();
     if (draggedComponent) {
       const newComponent = {
-        component_id: componentIdCounter,
+        component_id: draggedComponent.temp_id,
         component_name: draggedComponent.name,
         level: "1",
         row: x,
         column: y,
+        points: draggedComponent.points,
         connected_to: [],
         src: draggedComponent.src
       };
 
-      setComponents(prev => [...prev, newComponent]);
-      setComponentIdCounter(prev => prev + 1);
+      setComponents(prev => [
+        ...prev.filter(comp => comp.component_id !== newComponent.component_id),
+        newComponent
+      ]);
     }
   };
 
@@ -130,6 +137,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
       
       if (!targetComponent) return prev;
       
+      // Remove all connections to this component
       return prev
         .filter(c => c.component_id !== targetComponent.component_id)
         .map(c => ({
@@ -298,6 +306,7 @@ const Grid = ({ initialSavedComponents = [] }) => {
               level: comp.level,
               row: comp.row,
               column: comp.column,
+              points: comp.points,
               connected_to: comp.connected_to
             })),
             savedComponents: savedComponents
